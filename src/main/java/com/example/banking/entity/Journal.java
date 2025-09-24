@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import com.example.banking.model.JournalStatus;
+
 import jakarta.persistence.*;
 
 @Entity
@@ -16,8 +18,9 @@ public class Journal {
     @Column(columnDefinition = "UUID")
     private UUID id;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 16)
-    private String status;
+    private JournalStatus status;
 
     @Column(name = "description", length = 500)
     private String description;
@@ -36,13 +39,13 @@ public class Journal {
 
     public Journal() {}
 
-    public Journal(String status, String description, String externalRef) {
+    public Journal(JournalStatus status, String description, String externalRef) {
         this.status = status;
         this.description = description;
         this.externalRef = externalRef;
     }
 
-    public Journal(UUID id, String status, String description, String externalRef, Instant createdAt, Instant postedAt) {
+    public Journal(UUID id, JournalStatus status, String description, String externalRef, Instant createdAt, Instant postedAt) {
         this.id = id;
         this.status = status;
         this.description = description;
@@ -59,11 +62,11 @@ public class Journal {
         this.id = id;
     }
 
-    public String getStatus() {
+    public JournalStatus getStatus() {
         return status;
     }
 
-    public void setStatus(String status) {
+    public void setStatus(JournalStatus status) {
         this.status = status;
     }
 
