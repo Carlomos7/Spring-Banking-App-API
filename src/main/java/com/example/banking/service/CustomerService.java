@@ -30,6 +30,11 @@ public class CustomerService {
         return customerRepository.findByUsername(username);
     }
 
+    public Customer requireById(UUID id) {
+        return customerRepository.findById(id)
+                .orElseThrow(() -> new CustomerNotFoundException(id.toString()));
+    }
+
     @Transactional(readOnly = true)
     public Optional<Customer> getByEmail(String email) {
         return customerRepository.findByEmail(email);
