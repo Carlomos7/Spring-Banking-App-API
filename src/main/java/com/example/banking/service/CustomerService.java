@@ -2,6 +2,10 @@ package com.example.banking.service;
 
 import com.example.banking.entity.Customer;
 import com.example.banking.repository.CustomerRepository;
+
+import java.util.Optional;
+import java.util.UUID;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,36 +18,37 @@ public class CustomerService {
         this.customerRepository = customerRepository;
     }
 
+    @Transactional(readOnly = true)
+    public Optional<Customer> getById(UUID id) {
+        return customerRepository.findById(id);
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<Customer> getByUsername(String username) {
+        return customerRepository.findByUsername(username);
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<Customer> getByEmail(String email) {
+        return customerRepository.findByEmail(email);
+    }
+
     @Transactional
-    public Customer createCustomer(Customer customer) {
-        // basic null checks
-        if (customer == null) {
-            throw new IllegalArgumentException("Customer is required");
-        }
-        String fullName = safeTrim(customer.getFullName());
-        String email    = safeTrim(customer.getEmail());
-
-        if (fullName == null || fullName.isEmpty()) {
-            throw new IllegalArgumentException("Full name is required");
-        }
-        if (email == null || email.isEmpty()) {
-            throw new IllegalArgumentException("Email is required");
+    public Customer updateProfile(UUID id, String firstName, String lastName, String email) {
+        var c = customerRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Customer not found")); // TODO: Custom exception
+        
+        var normalizedEmail = email.trim().toLowerCase();
+        if (!c.getEmail().equals(normalizedEmail) && customerRepository.existsByEmail(normalizedEmail)) {
+            throw new IllegalArgumentException("Email already in use"); // TODO: Custom exception
         }
 
-        // normalize email
-        email = email.toLowerCase();
-        customer.setFullName(fullName);
-        customer.setEmail(email);
+        c.setFirstName(firstName);
+        c.setLastName(lastName);
+        c.setEmail(normalizedEmail);
 
-        // uniqueness check
-        if (customerRepository.findByEmail(email).isPresent()) {
-            throw new IllegalStateException("Email already registered");
-        }
-
-        return customerRepository.save(customer);
+        return customerRepository.save(c);
     }
 
-    private String safeTrim(String s) {
-        return s == null ? null : s.trim();
-    }
+    // TODO: Add method for deactivation
 }
