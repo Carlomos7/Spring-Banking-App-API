@@ -14,8 +14,17 @@ public class Customer {
     @Column(columnDefinition = "UUID")
     private UUID id;
 
-    @Column(name = "full_name", nullable = false)
-    private String fullName;
+    @Column(name = "username", nullable = false, unique = true, length = 50)
+    private String username;
+
+    @Column(name = "password_hash", nullable = false, length = 60)
+    private String passwordHash;
+
+    @Column(name = "first_name", nullable = false, length = 100)
+    private String firstName;
+
+    @Column(name = "last_name", nullable = false, length = 100)
+    private String lastName;
 
     @Column(name = "email", nullable = false, unique = true, length = 320)
     private String email;
@@ -26,19 +35,16 @@ public class Customer {
     @OneToMany(mappedBy = "customer", fetch = FetchType.LAZY)
     private List<Account> accounts = new ArrayList<>();
 
-    public Customer() {
+    protected Customer() {
     }
 
-    public Customer(String fullName, String email) {
-        this.fullName = fullName;
+    /* For Registration */
+    public Customer(String username, String passwordHash, String firstName, String lastName, String email) {
+        this.username = username;
+        this.passwordHash = passwordHash;
+        this.firstName = firstName;
+        this.lastName = lastName;
         this.email = email;
-    }
-
-    public Customer(UUID id, String fullName, String email, Instant createdAt) {
-        this.id = id;
-        this.fullName = fullName;
-        this.email = email;
-        this.createdAt = createdAt;
     }
 
     public UUID getId() {
@@ -49,12 +55,36 @@ public class Customer {
         this.id = id;
     }
 
-    public String getFullName() {
-        return fullName;
+    public String getUsername() {
+        return username;
     }
 
-    public void setFullName(String fullName) {
-        this.fullName = fullName;
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public String getpasswordHash() {
+        return passwordHash;
+    }
+
+    public void setPasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
+    }
+
+    public String getFirstName() {
+        return firstName;
+    }
+
+    public void setFirstName(String firstName) {
+        this.firstName = firstName;
+    }
+
+    public String getLastName() {
+        return lastName;
+    }
+
+    public void setLastName(String lastName) {
+        this.lastName = lastName;
     }
 
     public String getEmail() {

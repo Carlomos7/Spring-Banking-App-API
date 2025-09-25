@@ -34,26 +34,15 @@ public class LedgerEntry {
     @Column(name = "created_at", nullable = false, updatable = false, insertable = false)
     private Instant createdAt;
 
-    public LedgerEntry() {
+    protected LedgerEntry() {
     }
 
     public LedgerEntry(Journal journal, Account account, String side, Long amountCents, String currency) {
         this.journal = journal;
         this.account = account;
-        this.side = side;
+        this.side = side.toLowerCase();
         this.amountCents = amountCents;
         this.currency = currency;
-    }
-
-    public LedgerEntry(UUID id, Journal journal, Account account, String side, Long amountCents, String currency,
-            Instant createdAt) {
-        this.id = id;
-        this.journal = journal;
-        this.account = account;
-        this.side = side;
-        this.amountCents = amountCents;
-        this.currency = currency;
-        this.createdAt = createdAt;
     }
 
     public UUID getId() {

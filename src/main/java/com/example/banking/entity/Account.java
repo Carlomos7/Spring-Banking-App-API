@@ -29,23 +29,15 @@ public class Account {
     @Column(name = "opened_at", nullable = false, updatable = false, insertable = false)
     private Instant openedAt;
 
-    public Account() {
+    protected Account() {
     }
 
+    /* For Account Creation */
     public Account(Customer customer, String kind, String currency) {
         this.customer = customer;
         this.kind = kind;
         this.currency = currency;
         this.isActive = true; // default to active
-    }
-
-    public Account(UUID id, Customer customer, String kind, String currency, boolean isActive, Instant openedAt) {
-        this.id = id;
-        this.customer = customer;
-        this.kind = kind;
-        this.currency = currency;
-        this.isActive = isActive;
-        this.openedAt = openedAt;
     }
 
     public UUID getId() {
