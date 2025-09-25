@@ -37,21 +37,12 @@ public class Journal {
     @OneToMany(mappedBy = "journal", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<LedgerEntry> ledgerEntries = new ArrayList<>();
 
-    public Journal() {}
+    protected Journal() {}
 
     public Journal(JournalStatus status, String description, String externalRef) {
         this.status = status;
         this.description = description;
         this.externalRef = externalRef;
-    }
-
-    public Journal(UUID id, JournalStatus status, String description, String externalRef, Instant createdAt, Instant postedAt) {
-        this.id = id;
-        this.status = status;
-        this.description = description;
-        this.externalRef = externalRef;
-        this.createdAt = createdAt;
-        this.postedAt = postedAt;
     }
 
     public UUID getId() {
