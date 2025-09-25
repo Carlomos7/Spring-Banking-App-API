@@ -39,8 +39,7 @@ public class Journal {
 
     protected Journal() {}
 
-    public Journal(JournalStatus status, String description, String externalRef) {
-        this.status = status;
+    public Journal(String description, String externalRef) {
         this.description = description;
         this.externalRef = externalRef;
     }

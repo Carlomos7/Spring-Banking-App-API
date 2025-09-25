@@ -1,0 +1,80 @@
+package com.example.banking.service;
+
+import java.util.Locale;
+
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.example.banking.dto.LoginRequestDTO;
+import com.example.banking.dto.LoginResponseDTO;
+import com.example.banking.dto.RegisterRequestDTO;
+import com.example.banking.entity.Customer;
+import com.example.banking.repository.CustomerRepository;
+
+
+@Service
+public class AuthService {
+    private final CustomerRepository customerRepository;
+    private final PasswordEncoder encoder;
+
+    public AuthService(CustomerRepository customerRepository, PasswordEncoder encoder) {
+        this.customerRepository = customerRepository;
+        this.encoder = encoder;
+    }
+
+    @Transactional
+    public LoginResponseDTO register(RegisterRequestDTO req) {
+        var username = req.username().trim().toLowerCase(Locale.ROOT);
+        var email = req.email().trim().toLowerCase(Locale.ROOT);
+
+        if (customerRepository.existsByUsername(username)) {
+            throw new IllegalArgumentException("Username already in use"); // TODO: Custom exception
+        }
+        if (customerRepository.existsByEmail(email)) {
+            throw new IllegalArgumentException("Email already in use"); // TODO: Custom exception  
+        }
+
+        var customer = new Customer(
+            username,
+            encoder.encode(req.password()), // hash the password
+            req.firstName().trim(),
+            req.lastName().trim(),
+            email
+        );
+        customerRepository.save(customer);
+
+        return generateLoginResponse(customer);  
+    }
+
+    @Transactional(readOnly = true)
+    public LoginResponseDTO login(LoginRequestDTO req){
+        var identifier = req.identifier().trim().toLowerCase(Locale.ROOT);
+        var customer = customerRepository.findByUsername(identifier)
+            .or(() -> customerRepository.findByEmail(identifier))
+            .orElseThrow(() -> new IllegalArgumentException("Invalid username/email or password")); // TODO: Custom exception
+        if(!encoder.matches(req.password(), customer.getPasswordHash())){
+            throw new IllegalArgumentException("Invalid username/email or password"); // TODO: Custom exception
+        }
+        return generateLoginResponse(customer);
+    }
+
+    @Transactional
+    public void changePassword(Customer customer, String currentPassword, String newPassword) {
+        if (!encoder.matches(currentPassword, customer.getPasswordHash())) {
+            throw new IllegalArgumentException("Current password is incorrect"); // TODO: Custom exception
+        }
+        customer.setPasswordHash(encoder.encode(newPassword)); // hash the new password
+        customerRepository.save(customer);
+    }
+
+    private LoginResponseDTO generateLoginResponse(Customer customer) {
+        return LoginResponseDTO.of(
+            customer.getId(),
+            customer.getUsername(),
+            customer.getEmail(),
+            customer.getFirstName(),
+            customer.getLastName()
+        );
+    }
+}

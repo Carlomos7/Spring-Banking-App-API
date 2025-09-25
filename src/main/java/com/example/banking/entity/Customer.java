@@ -63,7 +63,7 @@ public class Customer {
         this.username = username;
     }
 
-    public String getpasswordHash() {
+    public String getPasswordHash() {
         return passwordHash;
     }
 
