@@ -68,6 +68,12 @@ public class AuthService {
         if(!encoder.matches(req.password(), customer.getPasswordHash())){
             throw new InvalidCredentialsException();
         }
+
+        if (encoder.upgradeEncoding(customer.getPasswordHash())){
+            customer.setPasswordHash(encoder.encode(req.password()));
+            customerRepository.save(customer);
+        }
+
         return generateLoginResponse(customer);
     }
 
