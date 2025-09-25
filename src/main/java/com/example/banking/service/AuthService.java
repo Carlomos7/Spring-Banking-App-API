@@ -10,6 +10,10 @@ import com.example.banking.dto.LoginRequestDTO;
 import com.example.banking.dto.LoginResponseDTO;
 import com.example.banking.dto.RegisterRequestDTO;
 import com.example.banking.entity.Customer;
+import com.example.banking.exceptions.BankingExceptions.UsernameAlreadyExistsException;
+import com.example.banking.exceptions.BankingExceptions.EmailAlreadyExistsException;
+import com.example.banking.exceptions.BankingExceptions.InvalidCredentialsException;
+import com.example.banking.exceptions.BankingExceptions.IncorrectPasswordException;
 import com.example.banking.repository.CustomerRepository;
 
 
@@ -29,10 +33,10 @@ public class AuthService {
         var email = req.email().trim().toLowerCase(Locale.ROOT);
 
         if (customerRepository.existsByUsername(username)) {
-            throw new IllegalArgumentException("Username already in use"); // TODO: Custom exception
+            throw new UsernameAlreadyExistsException(username);
         }
         if (customerRepository.existsByEmail(email)) {
-            throw new IllegalArgumentException("Email already in use"); // TODO: Custom exception  
+            throw new EmailAlreadyExistsException(email);
         }
 
         var customer = new Customer(
@@ -52,9 +56,9 @@ public class AuthService {
         var identifier = req.identifier().trim().toLowerCase(Locale.ROOT);
         var customer = customerRepository.findByUsername(identifier)
             .or(() -> customerRepository.findByEmail(identifier))
-            .orElseThrow(() -> new IllegalArgumentException("Invalid username/email or password")); // TODO: Custom exception
+            .orElseThrow(() -> new InvalidCredentialsException());
         if(!encoder.matches(req.password(), customer.getPasswordHash())){
-            throw new IllegalArgumentException("Invalid username/email or password"); // TODO: Custom exception
+            throw new InvalidCredentialsException();
         }
         return generateLoginResponse(customer);
     }
@@ -62,7 +66,7 @@ public class AuthService {
     @Transactional
     public void changePassword(Customer customer, String currentPassword, String newPassword) {
         if (!encoder.matches(currentPassword, customer.getPasswordHash())) {
-            throw new IllegalArgumentException("Current password is incorrect"); // TODO: Custom exception
+            throw new IncorrectPasswordException();
         }
         customer.setPasswordHash(encoder.encode(newPassword)); // hash the new password
         customerRepository.save(customer);

@@ -10,6 +10,15 @@ import org.springframework.transaction.annotation.Transactional;
 import com.example.banking.entity.Account;
 import com.example.banking.entity.Journal;
 import com.example.banking.entity.LedgerEntry;
+import com.example.banking.exceptions.BankingExceptions.ExternalReferenceAlreadyExistsException;
+import com.example.banking.exceptions.BankingExceptions.JournalNotFoundException;
+import com.example.banking.exceptions.BankingExceptions.JournalNotPendingException;
+import com.example.banking.exceptions.BankingExceptions.AccountNotFoundException;
+import com.example.banking.exceptions.BankingExceptions.InactiveAccountException;
+import com.example.banking.exceptions.BankingExceptions.InvalidTransactionSideException;
+import com.example.banking.exceptions.BankingExceptions.InvalidAmountException;
+import com.example.banking.exceptions.BankingExceptions.InvalidCurrencyCodeException;
+import com.example.banking.exceptions.BankingExceptions.UnbalancedJournalException;
 import com.example.banking.model.JournalStatus;
 import com.example.banking.repository.AccountRepository;
 import com.example.banking.repository.JournalRepository;
@@ -32,7 +41,7 @@ public class JournalService {
     @Transactional
     public Journal createJournal(String description, String externalRef) {
         if (externalRef != null && journalRepository.existsByExternalRef(externalRef)) {
-            throw new IllegalArgumentException("External reference already in use"); // TODO: Custom exception
+            throw new ExternalReferenceAlreadyExistsException(externalRef);
         }
         Journal journal = new Journal(description, externalRef);
         journal.setStatus(JournalStatus.PENDING);
@@ -44,27 +53,27 @@ public class JournalService {
     @Transactional
     public LedgerEntry addEntry(UUID journalId, UUID accountId, String side, String currency, long amountCents) {
         Journal journal = journalRepository.findById(journalId)
-                .orElseThrow(() -> new IllegalArgumentException("Journal not found")); // TODO: Custom exception
+                .orElseThrow(() -> new JournalNotFoundException(journalId.toString()));
         if (journal.getStatus() != JournalStatus.PENDING) {
-            throw new IllegalStateException("Cannot add entries to a non-pending journal"); // TODO
+            throw new JournalNotPendingException(journalId.toString());
         }
         Account account = accountRepository.findById(accountId)
-                .orElseThrow(() -> new IllegalArgumentException("Account not found")); // TODO: Custom exception
+                .orElseThrow(() -> new AccountNotFoundException(accountId.toString()));
         if (!account.isActive()) {
-            throw new IllegalStateException("Cannot add entries to an inactive account"); // TODO: Custom exception
+            throw new InactiveAccountException(accountId.toString());
         }
         String s = side.trim().toLowerCase(Locale.ROOT);
         if (!(s.equals("debit") || s.equals("credit"))) {
-            throw new IllegalArgumentException("Invalid side, must be 'debit' or 'credit'");
+            throw new InvalidTransactionSideException(side);
         }
 
         if (amountCents <= 0) {
-            throw new IllegalArgumentException("Amount must be positive");
+            throw new InvalidAmountException(amountCents);
         }
 
         String cur = currency.trim().toUpperCase(Locale.ROOT);
         if (cur.length() != 3){
-            throw new IllegalArgumentException("Invalid currency code");
+            throw new InvalidCurrencyCodeException(currency);
         }
 
         LedgerEntry entry = new LedgerEntry(journal, account, s, amountCents, cur);
@@ -81,12 +90,12 @@ public class JournalService {
     @Transactional
     public Journal postJournal(UUID journalId) {
         Journal journal = journalRepository.findById(journalId)
-                .orElseThrow(() -> new IllegalArgumentException("Journal not found")); // TODO: Custom exception
+                .orElseThrow(() -> new JournalNotFoundException(journalId.toString()));
         if (journal.getStatus() == JournalStatus.POSTED) {
             return journal; // already posted, no-op
         }
         if (!isBalanced(journalId)) {
-            throw new IllegalStateException("Cannot post an unbalanced journal"); // TODO
+            throw new UnbalancedJournalException(journalId.toString());
         }
         journal.setStatus(JournalStatus.POSTED);
 
