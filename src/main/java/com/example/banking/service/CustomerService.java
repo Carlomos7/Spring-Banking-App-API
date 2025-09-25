@@ -1,6 +1,8 @@
 package com.example.banking.service;
 
 import com.example.banking.entity.Customer;
+import com.example.banking.exceptions.BankingExceptions.CustomerNotFoundException;
+import com.example.banking.exceptions.BankingExceptions.EmailAlreadyExistsException;
 import com.example.banking.repository.CustomerRepository;
 
 import java.util.Optional;
@@ -36,11 +38,11 @@ public class CustomerService {
     @Transactional
     public Customer updateProfile(UUID id, String firstName, String lastName, String email) {
         var c = customerRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Customer not found")); // TODO: Custom exception
+                .orElseThrow(() -> new CustomerNotFoundException(id.toString()));
         
         var normalizedEmail = email.trim().toLowerCase();
         if (!c.getEmail().equals(normalizedEmail) && customerRepository.existsByEmail(normalizedEmail)) {
-            throw new IllegalArgumentException("Email already in use"); // TODO: Custom exception
+            throw new EmailAlreadyExistsException(normalizedEmail);
         }
 
         c.setFirstName(firstName);

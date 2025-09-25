@@ -9,11 +9,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.example.banking.entity.Account;
 import com.example.banking.entity.Customer;
+import com.example.banking.exceptions.BankingExceptions.CustomerNotFoundException;
+import com.example.banking.exceptions.BankingExceptions.AccountNotFoundException;
+import com.example.banking.exceptions.BankingExceptions.InvalidAccountKindException;
+import com.example.banking.exceptions.BankingExceptions.InvalidCurrencyCodeException;
 import com.example.banking.repository.AccountRepository;
 import com.example.banking.repository.CustomerRepository;
 import com.example.banking.repository.LedgerEntryRepository;
-
-import jakarta.validation.ValidationException;
 
 @Service
 public class AccountService {
@@ -30,15 +32,15 @@ public class AccountService {
     @Transactional
     public Account openAccount(UUID customerId, String kind, String currency) {
         Customer owner = customerRepository.findById(customerId)
-                .orElseThrow(() -> new ValidationException("customer not found"));
+                .orElseThrow(() -> new CustomerNotFoundException(customerId.toString()));
 
         String k = kind.trim().toLowerCase(Locale.ROOT);
         if (!(k.equals("checking") || k.equals("savings") || k.equals("internal"))) {
-            throw new ValidationException("invalid account kind");
+            throw new InvalidAccountKindException(kind);
         }
 
         String cur = currency.trim().toUpperCase(Locale.ROOT);
-        if (cur.length() != 3) throw new ValidationException("invalid currency (ISO-4217)"); // TODO: More robust validation
+        if (cur.length() != 3) throw new InvalidCurrencyCodeException(currency);
 
         Account a = new Account(owner, k, cur); // defaults isActive=true
         return accountRepository.save(a);
@@ -52,13 +54,13 @@ public class AccountService {
     @Transactional(readOnly = true)
     public Account getAccount(UUID accountId, UUID customerId) {
         return accountRepository.findByIdAndCustomer_Id(accountId, customerId)
-                .orElseThrow(() -> new ValidationException("account not found")); // TODO: Custom exception
+                .orElseThrow(() -> new AccountNotFoundException(accountId.toString()));
     }
 
     @Transactional
     public void setActive(UUID accountId, boolean active) {
         Account a = accountRepository.findById(accountId)
-                .orElseThrow(() -> new ValidationException("account not found")); // TODO: Custom exception
+                .orElseThrow(() -> new AccountNotFoundException(accountId.toString()));
         if (a.isActive() == active) return; // no change
         a.setActive(active);
     }
