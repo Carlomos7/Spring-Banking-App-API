@@ -34,7 +34,8 @@ public class DevSecurityConfig {
           .csrf(csrf -> csrf.disable()) // Disable CSRF for H2 console access in dev
           .headers(h -> h.frameOptions(f -> f.sameOrigin())) // Allow H2 console to load in a frame
           .authorizeHttpRequests(auth -> auth
-            .requestMatchers("/h2-console/**", "/auth/**").permitAll() // Permit access to H2 console and auth endpoints
+            .requestMatchers("/h2-console/**",
+                   "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll() // Permit access to H2 console and auth endpoints
             .anyRequest().authenticated()
           )
           .httpBasic(Customizer.withDefaults())
