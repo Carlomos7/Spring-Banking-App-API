@@ -6,6 +6,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.example.banking.dto.CustomerResponseDTO;
 import com.example.banking.dto.LoginRequestDTO;
 import com.example.banking.dto.LoginResponseDTO;
 import com.example.banking.dto.RegisterRequestDTO;
@@ -28,7 +29,7 @@ public class AuthService {
     }
 
     @Transactional
-    public LoginResponseDTO register(RegisterRequestDTO req) {
+    public CustomerResponseDTO register(RegisterRequestDTO req) {
         var username = req.username().trim().toLowerCase(Locale.ROOT);
         var email = req.email().trim().toLowerCase(Locale.ROOT);
 
@@ -48,7 +49,14 @@ public class AuthService {
         );
         customerRepository.save(customer);
 
-        return generateLoginResponse(customer);  
+        return CustomerResponseDTO.of(
+            customer.getId(),
+            customer.getUsername(),
+            customer.getEmail(),
+            customer.getFirstName(),
+            customer.getLastName(),
+            customer.getCreatedAt()
+        );
     }
 
     @Transactional(readOnly = true)
