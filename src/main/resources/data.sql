@@ -1,8 +1,22 @@
 -- Customers
-INSERT INTO customer (id, full_name, email)
+INSERT INTO customer (id, username, password_hash, first_name, last_name, email)
 VALUES
-    ('11111111-1111-1111-1111-111111111111', 'Alice Doe', 'alice@example.com'),
-    ('22222222-2222-2222-2222-222222222222', 'Bob Smith', 'bob@example.com');
+    (
+        '11111111-1111-1111-1111-111111111111',
+        'alice',
+        '$2a$10$Dow1a6Lk6B9VQZo.5X8YfuZsD6c5DcM45QK6Z04.L3XxN7Sfhpj9K', -- password: alice123
+        'Alice',
+        'Doe',
+        'alice@example.com'
+    ),
+    (
+        '22222222-2222-2222-2222-222222222222',
+        'bob',
+        '$2a$10$7QhZGBEqM3s8ThFSz0ziAuj5j9SuDrBqUcdh7QU2n9nmJY4dqppLS', -- password: bob123
+        'Bob',
+        'Smith',
+        'bob@example.com'
+    );
 
 -- Accounts
 INSERT INTO account (id, customer_id, kind, currency)
