@@ -1,6 +1,9 @@
 package com.example.banking.controller;
 
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.Map;
+
 import org.springframework.web.bind.annotation.GetMapping;
 
 
@@ -8,7 +11,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 public class RootController {
 
     @GetMapping("/")
-    public String home() {
-        return "Welcome to the Banking API";
+    public Map<String, String> home() {
+        return Map.of("name","Banking API","docs","/swagger-ui/index.html");
     }
 }
