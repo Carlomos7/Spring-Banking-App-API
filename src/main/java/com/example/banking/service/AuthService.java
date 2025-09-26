@@ -5,6 +5,7 @@ import java.util.Locale;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import jakarta.persistence.EntityManager;
 
 import com.example.banking.dto.CustomerResponseDTO;
 import com.example.banking.dto.LoginRequestDTO;
@@ -22,10 +23,12 @@ import com.example.banking.repository.CustomerRepository;
 public class AuthService {
     private final CustomerRepository customerRepository;
     private final PasswordEncoder encoder;
+    private final EntityManager entityManager;
 
-    public AuthService(CustomerRepository customerRepository, PasswordEncoder encoder) {
+    public AuthService(CustomerRepository customerRepository, PasswordEncoder encoder, EntityManager entityManager) {
         this.customerRepository = customerRepository;
         this.encoder = encoder;
+        this.entityManager = entityManager;
     }
 
     @Transactional
@@ -47,7 +50,10 @@ public class AuthService {
             req.lastName().trim(),
             email
         );
-        customerRepository.save(customer);
+    customerRepository.save(customer);
+    // Ensure DB-generated fields (created_at) are loaded from the database
+    entityManager.flush(); // force insert
+    entityManager.refresh(customer); // reload DB state (created_at populated)
 
         return CustomerResponseDTO.of(
             customer.getId(),

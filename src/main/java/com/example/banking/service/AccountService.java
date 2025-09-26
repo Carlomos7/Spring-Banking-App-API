@@ -2,10 +2,14 @@ package com.example.banking.service;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.UUID;
+import java.util.Currency;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import jakarta.persistence.EntityManager;
 
 import com.example.banking.entity.Account;
 import com.example.banking.entity.Customer;
@@ -22,12 +26,17 @@ public class AccountService {
     private final AccountRepository accountRepository;
     private final CustomerRepository customerRepository;
     private final LedgerEntryRepository ledgerEntryRepository;
+    private final EntityManager entityManager;
 
-    public AccountService(AccountRepository accountRepository, CustomerRepository customerRepository, LedgerEntryRepository ledgerEntryRepository) {
+    public AccountService(AccountRepository accountRepository, CustomerRepository customerRepository, LedgerEntryRepository ledgerEntryRepository, EntityManager entityManager) {
         this.accountRepository = accountRepository;
         this.customerRepository = customerRepository;
         this.ledgerEntryRepository = ledgerEntryRepository;
+        this.entityManager = entityManager;
     }
+
+    private static final Set<String> ISO_CURRENCY_CODES = Currency.getAvailableCurrencies()
+        .stream().map(Currency::getCurrencyCode).collect(Collectors.toUnmodifiableSet());
 
     @Transactional
     public Account openAccount(UUID customerId, String kind, String currency) {
@@ -40,11 +49,18 @@ public class AccountService {
         }
 
         String cur = currency.trim().toUpperCase(Locale.ROOT);
-        if (cur.length() != 3) throw new InvalidCurrencyCodeException(currency);
+        if (cur.length() != 3 || !ISO_CURRENCY_CODES.contains(cur)) {
+            throw new InvalidCurrencyCodeException(currency);
+        }
 
         Account a = new Account(owner, k, cur); // defaults isActive=true
-        return accountRepository.save(a);
+        accountRepository.save(a);
+        // Ensure openedAt (DB default) is loaded before leaving transactional boundary
+        entityManager.flush();
+        entityManager.refresh(a);
+        return a;
     }
+
 
     @Transactional(readOnly = true)
     public List<Account> listCustomerAccounts(UUID customerId) {
