@@ -1,6 +1,9 @@
 package com.example.banking.entity;
 
 import jakarta.persistence.*;
+
+import org.hibernate.annotations.CreationTimestamp;
+
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -29,6 +32,7 @@ public class Customer {
     @Column(name = "email", nullable = false, unique = true, length = 320)
     private String email;
 
+    @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false, insertable = false)
     private Instant createdAt;
 
