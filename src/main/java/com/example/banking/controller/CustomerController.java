@@ -8,6 +8,8 @@ import com.example.banking.dto.UpdateProfileRequestDTO;
 import com.example.banking.entity.Customer;
 import com.example.banking.service.CustomerService;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
 import java.util.UUID;
@@ -20,6 +22,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 
 @RestController
 @RequestMapping("/customers")
+@Tag(name = "Customers", description = "Endpoints for managing customers")
 public class CustomerController {
     
     private final CustomerService customerService;
@@ -28,6 +31,7 @@ public class CustomerController {
         this.customerService = customerService;
     }
 
+    @Operation(summary = "Get customer by ID", description = "Retrieves customer details by their unique ID.")
     @GetMapping("/{id}")
     public CustomerResponseDTO getCustomerById(@PathVariable UUID id) {
         Customer c = customerService.requireById(id);
@@ -41,6 +45,7 @@ public class CustomerController {
         );
     }
 
+    @Operation(summary = "Update customer profile", description = "Updates the profile information of a customer.")
     @PatchMapping("/{id}")
     public CustomerResponseDTO updateCustomerProfile(@PathVariable UUID id, @Valid @RequestBody UpdateProfileRequestDTO req) {
         Customer c = customerService.updateProfile(id, req.firstName(), req.lastName(), req.email());
