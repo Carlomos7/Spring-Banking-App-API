@@ -300,6 +300,9 @@ public final class BankingExceptions {
         public UnbalancedJournalException(String message, Throwable cause) {
             super(ErrorCode.UNBALANCED_JOURNAL, message, cause);
         }
+        public UnbalancedJournalException(String message, Map<String, ?> metadata) {
+            super(ErrorCode.UNBALANCED_JOURNAL, message, metadata);
+        }
     }
 
     private BankingExceptions() { /* no instances */ }
