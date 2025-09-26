@@ -3,6 +3,10 @@ package com.example.banking.service;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
+import java.util.Currency;
+import java.util.Set;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,6 +35,9 @@ public class JournalService {
     private final LedgerEntryRepository ledgerEntryRepository;
     private final AccountRepository accountRepository;
 
+    private static final Set<String> ISO_CURRENCY_CODES = Currency.getAvailableCurrencies().stream()
+        .map(Currency::getCurrencyCode).collect(Collectors.toUnmodifiableSet());
+
     public JournalService(JournalRepository journalRepository, LedgerEntryRepository ledgerEntryRepository,
             AccountRepository accountRepository) {
         this.journalRepository = journalRepository;
@@ -40,13 +47,13 @@ public class JournalService {
 
     @Transactional
     public Journal createJournal(String description, String externalRef) {
-        if (externalRef != null && journalRepository.existsByExternalRef(externalRef)) {
-            throw new ExternalReferenceAlreadyExistsException(externalRef);
+        String desc = (description == null || description.isBlank()) ? null : description.trim();
+        String ext = (externalRef == null || externalRef.isBlank()) ? null : externalRef.trim();
+        if (ext != null && journalRepository.existsByExternalRef(ext)) {
+            throw new ExternalReferenceAlreadyExistsException(ext);
         }
-        Journal journal = new Journal(description, externalRef);
+        Journal journal = new Journal(desc, ext);
         journal.setStatus(JournalStatus.PENDING);
-        journal.setDescription(description);
-        journal.setExternalRef(externalRef);
         return journalRepository.save(journal);
     }
 
@@ -72,8 +79,14 @@ public class JournalService {
         }
 
         String cur = currency.trim().toUpperCase(Locale.ROOT);
-        if (cur.length() != 3){
+        if (cur.length() != 3 || !ISO_CURRENCY_CODES.contains(cur)) {
             throw new InvalidCurrencyCodeException(currency);
+        }
+
+        // Enforce single currency: if journal already has entries, ensure same currency
+        List<String> currencies = ledgerEntryRepository.distinctCurrenciesForJournal(journalId);
+        if (!currencies.isEmpty() && !currencies.contains(cur)) {
+            throw new InvalidCurrencyCodeException(cur + " (single-currency journal mismatch, existing=" + currencies.get(0) + ")");
         }
 
         LedgerEntry entry = new LedgerEntry(journal, account, s, amountCents, cur);
@@ -94,11 +107,22 @@ public class JournalService {
         if (journal.getStatus() == JournalStatus.POSTED) {
             return journal; // already posted, no-op
         }
-        if (!isBalanced(journalId)) {
-            throw new UnbalancedJournalException(journalId.toString());
+        long net = ledgerEntryRepository.netAmountForJournal(journalId);
+        long debits = ledgerEntryRepository.totalDebits(journalId);
+        long credits = ledgerEntryRepository.totalCredits(journalId);
+        List<String> currencies = ledgerEntryRepository.distinctCurrenciesForJournal(journalId);
+        String currency = currencies.isEmpty() ? null : currencies.get(0);
+        if (net != 0) {
+            throw new UnbalancedJournalException("Cannot post an unbalanced journal", Map.of(
+                "journalId", journalId.toString(),
+                "currency", currency,
+                "debitTotalCents", debits,
+                "creditTotalCents", credits,
+                "netCents", net
+            ));
         }
         journal.setStatus(JournalStatus.POSTED);
-
+        journal.setPostedAt(java.time.Instant.now());
         return journalRepository.save(journal);
     }
 
@@ -106,4 +130,22 @@ public class JournalService {
     public List<LedgerEntry> listEntries(UUID journalId) {
         return ledgerEntryRepository.findByJournal_Id(journalId);
     }
+
+    @Transactional(readOnly = true)
+    public Journal getJournal(UUID journalId) {
+        return journalRepository.findById(journalId)
+            .orElseThrow(() -> new JournalNotFoundException(journalId.toString()));
+    }
+
+    @Transactional(readOnly = true)
+    public JournalDiagnostics diagnostics(UUID journalId) {
+        long net = ledgerEntryRepository.netAmountForJournal(journalId);
+        long debits = ledgerEntryRepository.totalDebits(journalId);
+        long credits = ledgerEntryRepository.totalCredits(journalId);
+        List<String> currencies = ledgerEntryRepository.distinctCurrenciesForJournal(journalId);
+        String currency = currencies.isEmpty() ? null : currencies.get(0);
+        return new JournalDiagnostics(currency, debits, credits, net, net == 0);
+    }
+
+    public static record JournalDiagnostics(String currency, long debitTotalCents, long creditTotalCents, long netCents, boolean balanced) {}
 }

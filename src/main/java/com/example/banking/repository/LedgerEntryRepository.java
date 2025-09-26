@@ -33,6 +33,25 @@ public interface LedgerEntryRepository extends JpaRepository<LedgerEntry, UUID> 
             """)
     Long netAmountForJournal(UUID journalId);
 
+    @Query("""
+              select e.currency from LedgerEntry e
+              where e.journal.id = :journalId
+              group by e.currency
+            """)
+    List<String> distinctCurrenciesForJournal(UUID journalId);
+
+    @Query("""
+              select coalesce(sum(e.amountCents),0) from LedgerEntry e
+              where e.journal.id = :journalId and e.side = 'debit'
+            """)
+    Long totalDebits(UUID journalId);
+
+    @Query("""
+              select coalesce(sum(e.amountCents),0) from LedgerEntry e
+              where e.journal.id = :journalId and e.side = 'credit'
+            """)
+    Long totalCredits(UUID journalId);
+
     // similarly we can calculate the net amount for an account
     // credits increase the balance, debits decrease it
     @Query("""

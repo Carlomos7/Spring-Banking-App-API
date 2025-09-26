@@ -5,7 +5,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import org.hibernate.annotations.CreationTimestamp;
+
 import com.example.banking.model.JournalStatus;
+import com.example.banking.model.converter.JournalStatusConverter;
 
 import jakarta.persistence.*;
 
@@ -18,7 +21,7 @@ public class Journal {
     @Column(columnDefinition = "UUID")
     private UUID id;
 
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = JournalStatusConverter.class)
     @Column(name = "status", nullable = false, length = 16)
     private JournalStatus status;
 
@@ -28,6 +31,7 @@ public class Journal {
     @Column(name = "external_ref", length = 120, unique = true)
     private String externalRef;
 
+    @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false, insertable = false)
     private Instant createdAt;
 
@@ -36,6 +40,7 @@ public class Journal {
 
     @OneToMany(mappedBy = "journal", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<LedgerEntry> ledgerEntries = new ArrayList<>();
+
 
     protected Journal() {}
 
@@ -91,6 +96,7 @@ public class Journal {
     public List<LedgerEntry> getLedgerEntries() {
         return ledgerEntries;
     }
+
     
     public void addLedgerEntry(LedgerEntry entry) {
         ledgerEntries.add(entry);

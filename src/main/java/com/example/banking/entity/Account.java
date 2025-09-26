@@ -3,6 +3,8 @@ package com.example.banking.entity;
 import java.time.Instant;
 import java.util.UUID;
 
+import org.hibernate.annotations.CreationTimestamp;
+
 import jakarta.persistence.*;
 
 @Entity
@@ -26,6 +28,7 @@ public class Account {
     @Column(name = "is_active", nullable = false)
     private boolean isActive;
 
+    @CreationTimestamp
     @Column(name = "opened_at", nullable = false, updatable = false, insertable = false)
     private Instant openedAt;
 

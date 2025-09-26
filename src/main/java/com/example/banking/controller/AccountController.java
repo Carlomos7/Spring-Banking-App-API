@@ -12,10 +12,12 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.banking.dto.OpenAccountRequestDTO;
+import com.example.banking.dto.AccountResponseDTO;
 import com.example.banking.dto.ToggleActiveRequestDTO;
-import com.example.banking.entity.Account;
 import com.example.banking.service.AccountService;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -23,6 +25,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 @RestController
 @RequestMapping
+@Tag(name = "Accounts", description = "Endpoints for managing bank accounts")
 public class AccountController {
 
     private final AccountService accountService;
@@ -31,29 +34,28 @@ public class AccountController {
         this.accountService = accountService;
     }
 
+    @Operation(summary = "Open a new account", description = "Opens a new bank account for a specified customer.")
     @PostMapping("/customers/{customerId}/accounts")
     @ResponseStatus(HttpStatus.CREATED)
-    public Account open(@PathVariable UUID customerId, @Valid @RequestBody OpenAccountRequestDTO req) {
-        return accountService.openAccount(customerId, req.kind(), req.currency());
+    public AccountResponseDTO open(@PathVariable UUID customerId,
+                                   @Valid @RequestBody OpenAccountRequestDTO req) {
+        var acc = accountService.openAccount(customerId, req.kind(), req.currency());
+        return AccountResponseDTO.of(acc);
     }
 
+    @Operation(summary = "List all accounts for a customer", description = "Retrieves a list of all bank accounts for a specified customer.")
     @GetMapping("/customers/{customerId}/accounts")
-    public List<Account> list(@PathVariable UUID customerId) {
-        return accountService.listCustomerAccounts(customerId);
+    public List<AccountResponseDTO> list(@PathVariable UUID customerId) {
+        return accountService.listCustomerAccounts(customerId).stream().map(AccountResponseDTO::of).toList();
     }
 
+    @Operation(summary = "Get account details", description = "Retrieves details of a specific bank account for a customer.")
     @GetMapping("/accounts/{accountId}")
-    public Account get(@PathVariable UUID accountId, @RequestParam(required = false) UUID customerId) {
-        // could also strictly require customerId and check ownership
-        if (customerId != null) {
-            return accountService.getAccount(accountId, customerId);
-        }
-        return accountService
-                .listCustomerAccounts(customerId) // TODO: optimize
-                .stream().filter(a -> a.getId().equals(accountId)).findFirst()
-                .orElseGet(() -> accountService.getAccount(accountId, customerId)); // fallback
+    public AccountResponseDTO get(@PathVariable UUID accountId, @RequestParam UUID customerId) {
+        return AccountResponseDTO.of(accountService.getAccount(accountId, customerId));
     }
 
+    @Operation(summary = "Activate or deactivate an account", description = "Sets the active status of a specified bank account.")
     @PatchMapping("/accounts/{accountId}/active")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void toggleActive(@PathVariable UUID accountId, @Valid @RequestBody ToggleActiveRequestDTO req) {

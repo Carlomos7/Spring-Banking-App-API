@@ -14,14 +14,19 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.banking.dto.AddEntryRequestDTO;
+import com.example.banking.dto.JournalResponseDTO;
+import com.example.banking.dto.LedgerEntryResponseDTO;
 import com.example.banking.entity.Journal;
 import com.example.banking.entity.LedgerEntry;
 import com.example.banking.service.JournalService;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/journals")
+@Tag(name = "Journals", description = "Endpoints for managing financial journals")
 public class JournalController {
     private final JournalService journalService;
 
@@ -29,26 +34,40 @@ public class JournalController {
         this.journalService = journalService;
     }
 
+    @Operation(summary = "Create a new journal", description = "Creates a new financial journal with optional description and external reference.")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Journal create(@RequestParam(required = false) String description,
+    public JournalResponseDTO create(@RequestParam(required = false) String description,
             @RequestParam(required = false) String externalRef) {
-        return journalService.createJournal(description, externalRef);
+        Journal j = journalService.createJournal(description, externalRef);
+        var diag = journalService.diagnostics(j.getId());
+        return JournalResponseDTO.of(j, diag.balanced(), diag.currency(), diag.debitTotalCents(), diag.creditTotalCents(), diag.netCents());
     }
 
+    @Operation(summary = "Add an entry to a journal", description = "Adds a ledger entry to a specified journal.")
     @PostMapping("/{journalId}/entries")
     @ResponseStatus(HttpStatus.CREATED)
-    public LedgerEntry addEntry(@PathVariable UUID journalId, @Valid @RequestBody AddEntryRequestDTO req) {
-        return journalService.addEntry(journalId, req.accountId(), req.side(), req.currency(), req.amountCents());
+    public LedgerEntryResponseDTO addEntry(@PathVariable UUID journalId, @Valid @RequestBody AddEntryRequestDTO req) {
+        LedgerEntry e = journalService.addEntry(journalId, req.accountId(), req.side(), req.currency(), req.amountCents());
+        return LedgerEntryResponseDTO.of(e);
     }
 
     @PostMapping("/{journalId}/post")
-    public Journal post(@PathVariable UUID journalId) {
-        return journalService.postJournal(journalId);
+    public JournalResponseDTO post(@PathVariable UUID journalId) {
+        Journal j = journalService.postJournal(journalId);
+        var diag = journalService.diagnostics(journalId);
+        return JournalResponseDTO.of(j, diag.balanced(), diag.currency(), diag.debitTotalCents(), diag.creditTotalCents(), diag.netCents());
     }
 
     @GetMapping("/{journalId}/entries")
-    public List<LedgerEntry> listEntries(@PathVariable UUID journalId) {
-        return journalService.listEntries(journalId);
+    public List<LedgerEntryResponseDTO> listEntries(@PathVariable UUID journalId) {
+        return journalService.listEntries(journalId).stream().map(LedgerEntryResponseDTO::of).toList();
+    }
+
+    @GetMapping("/{journalId}")
+    public JournalResponseDTO get(@PathVariable UUID journalId) {
+        Journal j = journalService.getJournal(journalId);
+        var diag = journalService.diagnostics(journalId);
+        return JournalResponseDTO.of(j, diag.balanced(), diag.currency(), diag.debitTotalCents(), diag.creditTotalCents(), diag.netCents());
     }
 }

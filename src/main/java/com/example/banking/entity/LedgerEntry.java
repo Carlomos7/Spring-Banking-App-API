@@ -3,6 +3,8 @@ package com.example.banking.entity;
 import java.time.Instant;
 import java.util.UUID;
 
+import org.hibernate.annotations.CreationTimestamp;
+
 import jakarta.persistence.*;
 
 @Entity
@@ -31,6 +33,7 @@ public class LedgerEntry {
     @Column(name = "currency", nullable = false, length = 3)
     private String currency;
 
+    @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false, insertable = false)
     private Instant createdAt;
 
